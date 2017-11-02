@@ -14,6 +14,7 @@ use GuzzleHttp\Exception\ConnectException;
  */
 class HttpReader implements ReaderInterface
 {
+
     /**
      * @var Client $client
      */
@@ -87,21 +88,30 @@ class HttpReader implements ReaderInterface
      */
     public function readLink(LinkInterface $link)
     {
-        $client = $this->getClient();
+       $client = $this->getClient();
 
-        try {
-            $response = $client->request('GET', $link->getUrl(), array_merge($this->config, [
-                'on_stats' => function (TransferStats $stats) use (&$link) {
-                    $link->setEffectiveUrl($stats->getEffectiveUri());
-                }
-            ]));
+       try {
+           $headers = [];
+           $headers['User-Agent'] = 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)';
 
-            $link->setContent($response->getBody())
-                ->setContentType($response->getHeader('Content-Type')[0]);
-        } catch (ConnectException $e) {
-            $link->setContent(false)->setContentType(false);
-        }
+           $response = $client->request('GET', $link->getUrl(), array_merge($this->config, [
+               'on_stats' => function (TransferStats $stats) use (&$link) {
+                   $link->setEffectiveUrl($stats->getEffectiveUri());
+               },
+               'headers' => $headers
+           ]));
 
-        return $link;
+           $link->setContent($response->getBody())->setContentType('text/html');
+
+       } catch (ConnectException $e) {
+
+           $link->setContent(false)->setContentType(false);
+
+       }
+
+       // return
+       return $link;
+
     }
+
 }
